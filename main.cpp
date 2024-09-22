@@ -6,6 +6,8 @@ typedef enum TokenType {
     T_EOF,
     PLUS,
     MINUS,
+    MULT,
+    DIV,
 } TokenType;
 
 class Token
@@ -34,21 +36,19 @@ public:
     } 
 };
 
-class Interpreter
+class Lexer
 {
 private:
     std::string text;
     int pos;
-    Token current_token;
     char current_char;
 
 public:
-
-    Interpreter(std::string t) : text(t), pos(0), current_token(Token(T_EOF, 0)), current_char(this -> text[this -> pos]) {}
+    Lexer(std::string t) : text(t), pos(0), current_char(this -> text[this -> pos]) {};
 
     void error()
     {
-        std::cout << "Error parsing input" << "\n";
+        std::cout << "Invalid character" << "\n";
         exit(1);
     }
 
@@ -112,19 +112,46 @@ public:
                 return Token(MINUS, '-');
             }
 
+            if (this -> current_char == '*')
+            {
+                this -> advance();
+                return Token(MULT, '*');
+            }
+            
+            if (this -> current_char == '/')
+            {
+                this -> advance();
+                return Token(DIV, '/');
+            }
+
             this -> error();
         }
 
         return Token(T_EOF, 0);
     }
+};
 
-    // Parser / Interpreter code
+class Interpreter
+{
+private:
+    Lexer lexer;
+    Token current_token;
+
+public:
+
+    Interpreter(Lexer l) : lexer(l), current_token(lexer.get_next_token()) {}
+
+    void error()
+    {
+        std::cout << "Error parsing input" << "\n";
+        exit(1);
+    }
 
     void eat(TokenType t_type)
     {
         if (this -> current_token.getType() == t_type)
         {
-            this -> current_token = this -> get_next_token();
+            this -> current_token = this -> lexer.get_next_token();
         }
         else
         {
@@ -132,30 +159,43 @@ public:
         }
     }
 
-    int term()
+    int factor()
     {
         Token token = this -> current_token;
-        this->eat(INTEGER);
+        this -> eat(INTEGER);
         return token.getValue();
     }
 
     int expr()
     {
-        this -> current_token = this -> get_next_token();
+        int res = this -> factor();
 
-        int res = this -> term();
-        while (this -> current_token.getType() == PLUS || this -> current_token.getType() == MINUS)
+        while (this -> current_token.getType() == PLUS || this -> current_token.getType() == MULT
+        || this -> current_token.getType() == MINUS || this -> current_token.getType() == DIV)
         {
             Token token = this -> current_token;
+            if (token.getType() == MULT)
+            {
+                this -> eat(MULT);
+                res *= this -> factor();
+            }
+
+            if (token.getType() == DIV)
+            {
+                this -> eat(DIV);
+                res /= this -> factor();
+            }
+
             if (token.getType() == PLUS)
             {
                 this -> eat(PLUS);
-                res += this -> term();
+                res += this -> factor();
             }
-            else if (token.getType() == MINUS)
+
+            if (token.getType() == MINUS)
             {
                 this -> eat(MINUS);
-                res -= this -> term();
+                res -= this -> factor();
             }
         }
 
@@ -176,7 +216,8 @@ int main()
             break;
         }
 
-        Interpreter interpreter(text);
+        Lexer lexer(text);
+        Interpreter interpreter(lexer);
         std::cout << interpreter.expr() << "\n";
     }
 
