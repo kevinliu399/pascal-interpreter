@@ -8,6 +8,8 @@ typedef enum TokenType {
     MINUS,
     MULT,
     DIV,
+    L_PAREN,
+    R_PAREN,
 } TokenType;
 
 class Token
@@ -166,12 +168,11 @@ public:
         return token.getValue();
     }
 
-    int expr()
+    int term()
     {
         int res = this -> factor();
 
-        while (this -> current_token.getType() == PLUS || this -> current_token.getType() == MULT
-        || this -> current_token.getType() == MINUS || this -> current_token.getType() == DIV)
+        while (this -> current_token.getType() == MULT || this -> current_token.getType() == DIV)
         {
             Token token = this -> current_token;
             if (token.getType() == MULT)
@@ -185,17 +186,28 @@ public:
                 this -> eat(DIV);
                 res /= this -> factor();
             }
+        }
 
+        return res;
+    }
+
+    int expr()
+    {
+        int res = this -> term();
+
+        while (this -> current_token.getType() == PLUS || this -> current_token.getType() == MINUS)
+        {
+            Token token = this -> current_token;
             if (token.getType() == PLUS)
             {
                 this -> eat(PLUS);
-                res += this -> factor();
+                res += this -> term();
             }
 
             if (token.getType() == MINUS)
             {
                 this -> eat(MINUS);
-                res -= this -> factor();
+                res -= this -> term();
             }
         }
 
