@@ -126,6 +126,18 @@ public:
                 return Token(DIV, '/');
             }
 
+            if (this -> current_char == ')')
+            {
+                this -> advance();
+                return Token(R_PAREN, ')');
+            }
+
+            if (this -> current_char == '(')
+            {
+                this -> advance();
+                return Token(L_PAREN, '(');
+            }
+
             this -> error();
         }
 
@@ -164,8 +176,19 @@ public:
     int factor()
     {
         Token token = this -> current_token;
-        this -> eat(INTEGER);
-        return token.getValue();
+
+        if (token.getType() == INTEGER)
+        {
+            this -> eat(INTEGER);
+            return token.getValue();
+        }
+        else if (token.getType() == L_PAREN)
+        {
+            this -> eat(L_PAREN);
+            int res = this -> expr();
+            this -> eat(R_PAREN);
+            return res;
+        }
     }
 
     int term()
