@@ -56,7 +56,7 @@ public:
         this -> pos ++;
         if (this -> pos > this -> text.size() - 1)
         {
-            this -> current_char = '\0';
+            this -> current_char = '\0'; // EOF
         }
         else
         {
@@ -64,28 +64,57 @@ public:
         }
     }
 
+    void skip_whitespace()
+    {
+        while (this -> current_char != '\0' && isspace(this -> current_char))
+        {
+            this -> advance();
+        }
+    }
+
+    int integer()
+    {
+        std::string res = "";
+        while (this -> current_char != '\0' && isdigit(this -> current_char))
+        {
+            res += this -> current_char;
+            this -> advance();
+        }
+
+        return std::stoi(res);
+    }
+
     Token get_next_token()
     {
-        if (this -> pos > this -> text.size() - 1)
+        while (this -> current_char != '\0')
         {
-            return Token(T_EOF, 0);
+            if (isspace(this -> current_char))
+            {
+                this -> skip_whitespace();
+                continue;
+            }
+
+            if (isdigit(this -> current_char))
+            {
+                return Token(INTEGER, this -> integer());
+            }
+
+            if (this -> current_char == '+')
+            {
+                this -> advance();
+                return Token(PLUS, '+');
+            }
+
+            if (this -> current_char == '-')
+            {
+                this -> advance();
+                return Token(MINUS, '-');
+            }
+
+            this -> error();
         }
 
-        char curr_char = this -> text[this -> pos];
-
-        if (isdigit(curr_char))
-        {
-            this -> pos++;
-            return Token(INTEGER, curr_char - '0');
-        }
-
-        if (curr_char == '+')
-        {
-            this -> pos++;
-            return Token(PLUS, '+');
-        }
-
-        this -> error();
+        return Token(T_EOF, 0);
     }
 
     void eat(TokenType t_type)
@@ -100,6 +129,13 @@ public:
         }
     }
 
+    int term()
+    {
+        this -> current_token = this -> get_next_token();
+        this -> eat(INTEGER);
+        return this -> current_token.getValue();
+    }
+
     int expr()
     {
         this -> current_token = this -> get_next_token();
@@ -108,19 +144,45 @@ public:
         this -> eat(INTEGER);
 
         Token t_op = this -> current_token;
-        this -> eat(PLUS);
+        if (t_op.getType() == PLUS)
+        {
+            this -> eat(PLUS);
+        }
+        else
+        {
+            this -> eat(MINUS);
+        }
 
         Token t_right = this -> current_token;
         this -> eat(INTEGER);
 
-        return t_left.getValue() + t_right.getValue();
+        if (t_op.getType() == PLUS)
+        {
+            return t_left.getValue() + t_right.getValue();
+        }
+        else
+        {
+            return t_left.getValue() - t_right.getValue();
+        }
     }
 };
 
 int main()
 {
-    std::string text = "4+6+2";
-    Interpreter interpreter(text);
-    std::cout << interpreter.expr() << "\n";
+    while (true)
+    {
+        std::string text;
+        std::cout << "calc> ";
+        std::getline(std::cin, text);
+
+        if (text == "exit")
+        {
+            break;
+        }
+
+        Interpreter interpreter(text);
+        std::cout << interpreter.expr() << "\n";
+    }
+
     return 0;
 }
