@@ -49,6 +49,7 @@ public:
     void error()
     {
         std::cout << "Error parsing input" << "\n";
+        exit(1);
     }
 
     void advance()
@@ -117,6 +118,8 @@ public:
         return Token(T_EOF, 0);
     }
 
+    // Parser / Interpreter code
+
     void eat(TokenType t_type)
     {
         if (this -> current_token.getType() == t_type)
@@ -131,39 +134,32 @@ public:
 
     int term()
     {
-        this -> current_token = this -> get_next_token();
-        this -> eat(INTEGER);
-        return this -> current_token.getValue();
+        Token token = this -> current_token;
+        this->eat(INTEGER);
+        return token.getValue();
     }
 
     int expr()
     {
         this -> current_token = this -> get_next_token();
 
-        Token t_left = this -> current_token;
-        this -> eat(INTEGER);
+        int res = this -> term();
+        while (this -> current_token.getType() == PLUS || this -> current_token.getType() == MINUS)
+        {
+            Token token = this -> current_token;
+            if (token.getType() == PLUS)
+            {
+                this -> eat(PLUS);
+                res += this -> term();
+            }
+            else if (token.getType() == MINUS)
+            {
+                this -> eat(MINUS);
+                res -= this -> term();
+            }
+        }
 
-        Token t_op = this -> current_token;
-        if (t_op.getType() == PLUS)
-        {
-            this -> eat(PLUS);
-        }
-        else
-        {
-            this -> eat(MINUS);
-        }
-
-        Token t_right = this -> current_token;
-        this -> eat(INTEGER);
-
-        if (t_op.getType() == PLUS)
-        {
-            return t_left.getValue() + t_right.getValue();
-        }
-        else
-        {
-            return t_left.getValue() - t_right.getValue();
-        }
+        return res;
     }
 };
 
